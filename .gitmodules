@@ -1,0 +1,6 @@
+[submodule "GyroFlexTest"]
+	path = GyroFlexTest
+	url = https://github.com/vrabit/GyroFlexTest.git
+[submodule "GloveUtility"]
+	path = GloveUtility
+	url = https://github.com/vrabit/GloveUtility.git
