@@ -4,3 +4,6 @@
 [submodule "GloveUtility"]
 	path = GloveUtility
 	url = https://github.com/vrabit/GloveUtility.git
+[submodule "drones_ML"]
+	path = drones_ML
+	url = https://github.com/shenwutongjue/drones_ML.git
