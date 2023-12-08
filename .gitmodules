@@ -7,3 +7,6 @@
 [submodule "drones_ML"]
 	path = drones_ML
 	url = https://github.com/shenwutongjue/drones_ML.git
+[submodule "test"]
+	path = test
+	url = https://github.com/michaelhiggins8/test
