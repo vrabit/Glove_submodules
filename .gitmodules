@@ -10,3 +10,6 @@
 [submodule "test"]
 	path = test
 	url = https://github.com/michaelhiggins8/test
+[submodule "GloveCases"]
+	path = GloveCases
+	url = https://github.com/vrabit/GloveCases.git
