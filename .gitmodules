@@ -13,3 +13,6 @@
 [submodule "GloveCases"]
 	path = GloveCases
 	url = https://github.com/vrabit/GloveCases.git
+[submodule "Webots"]
+	path = Webots
+	url = https://github.com/FreesiAkuara/Webots.git
