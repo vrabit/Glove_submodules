@@ -7,6 +7,7 @@ from serial import*
 from collections import deque
 from enum import Enum
 
+
 serialPort= 'COM3'
 baudRate = 19200
 ser = Serial(serialPort,baudRate,timeout = 1)
