@@ -7,7 +7,7 @@ import atexit
 import asyncio
 from collections import deque
 
-#global glove variables
+# global glove variables
 QUEUE_SIZE = 10
 
 gesture = 0
@@ -41,27 +41,29 @@ z_positive_lock = asyncio.Lock()
 z_negative_lock = asyncio.Lock()
 
 
+# currently not being used since asyncio takes care of ports
 def close_ports():
     print('replace with ser.close()')
 
 
 atexit.register(close_ports)
 
-def toInt(xRaw):
+
+def to_int(x_raw):
     flip = 65535
-    tempPos = 1 << 15
-    if xRaw & tempPos:
-        temp =(~(xRaw) & flip) + 1
+    temp_pos = 1 << 15
+    if x_raw & temp_pos:
+        temp =(~(x_raw) & flip) + 1
         return -temp
     else:
-        return xRaw
+        return x_raw
 
 
 async def print_directions():
     while True:
-        global x_positive, x_negative, y_positive, y_negative, z_positive, z_negative
+        global x_positive, x_negative, y_positive, y_negative, z_positive, z_negative, gesture
         
-        #x_pos = x_neg = y_pos = y_neg = z_pos = z_neg = False
+        # x_pos = x_neg = y_pos = y_neg = z_pos = z_neg = False
         async with x_positive_lock, x_negative_lock:
             x_pos = x_positive
             x_neg = x_negative
@@ -71,14 +73,16 @@ async def print_directions():
         async with z_negative_lock, z_positive_lock:
             z_pos = z_positive
             z_neg = z_negative
+        async with gesture_lock:
+            ges = gesture
         results = [x_pos, x_neg, y_pos, y_neg, z_pos, z_neg]
-        print(results)
+        print(f"Rotation: {results}, Gesture: {ges}")
         await asyncio.sleep(0.10)
 
 
 async def calc_x_rotation(rotation_buffer):
+    # take average rotation x plane
     sum_rotation = (sum(list(rotation_buffer)) / 10)
-
     
     global x_positive, x_negative
     async with x_positive_lock:
@@ -86,19 +90,20 @@ async def calc_x_rotation(rotation_buffer):
             if sum_rotation > 90:
                 x_positive = True
                 x_negative = False
-                #print('X-Positive')
+
             elif sum_rotation < -90:
                 x_negative = True
                 x_positive = False
-                #print('X-negative')
+
             else:
                 pass
                 #x_positive = x_negative = False
                 #print('-',end= "")
-            
+
+
 async def calc_y_rotation(rotation_buffer):
+    # take average rotation y plane
     sum_rotation = (sum(list(rotation_buffer)) / 10)
-    #print(sum_rotation)
     
     global y_positive, y_negative
     async with y_positive_lock:
@@ -106,11 +111,11 @@ async def calc_y_rotation(rotation_buffer):
             if sum_rotation > 90:
                 y_positive = True
                 y_negative = False
-                #print('Y-Positive')
+
             elif sum_rotation < -90:
                 y_negative = True
                 y_positive = False
-                #print('Y-Negative')
+
             else:
                 pass
                 #y_positive = y_negative = False
@@ -118,8 +123,8 @@ async def calc_y_rotation(rotation_buffer):
     
 
 async def calc_z_rotation(rotation_buffer):
+    # take average rotation z plane
     sum_rotation = (sum(list(rotation_buffer)) / 10)
-    #print(sum_rotation)
     
     global z_positive, z_negative
     async with z_positive_lock:
@@ -127,11 +132,11 @@ async def calc_z_rotation(rotation_buffer):
             if sum_rotation > 90:
                 z_positive = True
                 z_negative = False
-                #print('Z-Positive')
+
             elif sum_rotation < -90:
                 z_negative = True
                 z_positive = False
-                #print('Z-Negative')
+
             else:
                 pass
                 #z_positive = z_negative = False
@@ -142,8 +147,10 @@ async def collect_x():
     print('x in')
     while True:
         global gesture_change_x, x_rotation_buffer, x_positive, x_negative
+
+        # reset queue if gesture change
         async with gesture_change_x_lock:
-            if gesture_change_x == True:
+            if gesture_change_x:
                 gesture_change_x = False
                 async with x_positive_lock, x_negative_lock:
                     x_positive = x_negative = False
@@ -151,10 +158,8 @@ async def collect_x():
                     x_rotation_buffer.clear()
         
         async with x_rotation_buffer_lock:
-            async with gesture_lock: 
-                #print(x_rotation_buffer)
+            async with gesture_lock:
                 if len(x_rotation_buffer) == 10:
-                    #print(f" Gesture: {gesture}")
                     await calc_x_rotation(x_rotation_buffer)    
 
         await asyncio.sleep(0.10)
@@ -163,8 +168,10 @@ async def collect_x():
 async def collect_y():
     while True:
         global gesture_change_y, y_rotation_buffer, y_positive, y_negative
+
+        # reset queue if gesture change
         async with gesture_change_y_lock:
-            if gesture_change_y == True:
+            if gesture_change_y:
                 gesture_change_y = False
                 async with y_positive_lock, y_negative_lock:
                     y_positive = y_negative = False
@@ -173,7 +180,6 @@ async def collect_y():
 
         async with y_rotation_buffer_lock: 
             if len(y_rotation_buffer) == 10:
-                #print(gesture)
                 await calc_y_rotation(y_rotation_buffer)    
             
         await asyncio.sleep(0.10)
@@ -182,18 +188,18 @@ async def collect_y():
 async def collect_z():
     while True:
         global gesture_change_z, z_rotation_buffer, z_positive, z_negative
+
+        # reset queue if gesture change
         async with gesture_change_z_lock:
-            if gesture_change_z == True:
+            if gesture_change_z:
                 gesture_change_z = False
                 async with z_positive_lock, z_negative_lock:
                     z_positive = z_negative = False
                 async with z_rotation_buffer_lock:
                     z_rotation_buffer.clear()
-        
-        #print(z_rotation_buffer)
+
         async with z_rotation_buffer_lock: 
             if len(z_rotation_buffer) == 10:
-                #print(gesture)
                 await calc_z_rotation(z_rotation_buffer)    
             
         await asyncio.sleep(0.10)
@@ -315,9 +321,7 @@ async def drone():
         yaw_desired = 0
         height_diff_desired = 0
 
-        #key = keyboard.getKey()
-
-        # update local variables
+        # update local variables with collected data
         global x_positive, x_negative, y_positive, y_negative, z_positive, z_negative, gesture
         async with x_positive_lock, x_negative_lock:
             x_pos = x_positive
@@ -334,34 +338,36 @@ async def drone():
         async with gesture_lock:
             ges = gesture
 
-#       F gesture - move up and down
+        # F gesture - move up and down
         if int(ges) == 1:
-            if z_pos:
-                height_diff_desired = 0.1
-            elif z_neg:
-                height_diff_desired = -0.1
+            if y_neg:
+                height_diff_desired = 0.2
+            elif y_pos:
+                height_diff_desired = -0.2
             else:
                 pass
-#       A gesture - rotate left and right
+        # A gesture - rotate left and right
         elif int(ges) == 0:
-            if y_pos:
+            if z_pos:
                 yaw_desired = +1
-            elif y_neg:
+            elif z_neg:
                 yaw_desired = -1
             else:
                 pass
-#       H gesture - move forward and back
+        # H gesture - move forward and back
         elif int(ges) == 3:
-            if x_pos:
+            if z_neg:
                 forward_desired += 0.5
-            elif x_neg:
+            elif z_pos:
                 forward_desired -= 0.5
             else:
                 pass
+
+        # Y gesture - move left and right
         elif int(ges) == 5:
-            if x_pos:
+            if x_neg:
                 sideways_desired += 0.5
-            elif x_neg:
+            elif x_pos:
                 sideways_desired -= 0.5
             else:
                 pass
@@ -387,7 +393,8 @@ async def drone():
 
 
 async def handle_client(reader, writer):
-    gyro_scale = (2000/32767) #gyroscopeRange/(2^15-1) range from spec sheet
+    # gyroscopeRange/(2^15-1) range from spec sheet
+    gyro_scale = (2000/32767)
     try:
         prev = ""
         while True:
@@ -406,28 +413,27 @@ async def handle_client(reader, writer):
                     gesture_change_z = True
                 async with gesture_lock:
                     gesture = message[0]
-                    print(gesture)
-                
-            #print(message[0] + " " + message[1] + " " +message[2] + " " + message [3])
+                    #print(gesture)
 
             if writer:
-                writer.write(data)  # Echo back to client (optional)
+                writer.write(data)  # Echo back to client 
                 await writer.drain()  # Ensure that the data is actually written to the client
             
-            int_gyro = [int(toInt(int(message[1])) * gyro_scale), int(toInt(int(message[2])) * gyro_scale), int(toInt(int(message[3])) * gyro_scale)]
+            # create list of gyro rotation values with scale applied
+            int_gyro = [int(to_int(int(message[1])) * gyro_scale), int(to_int(int(message[2])) * gyro_scale), int(to_int(int(message[3])) * gyro_scale)]
            
+            # fill the rotation_buffers to be used in approximating rotation
             global x_rotation_buffer, y_rotation_buffer, z_rotation_buffer
             async with x_rotation_buffer_lock: 
                 x_rotation_buffer.append(int_gyro[0])
-                #print(x_rotation_buffer)
+
             async with y_rotation_buffer_lock:
                 y_rotation_buffer.append(int_gyro[1])
-                #print(y_rotation_buffer)
+
             async with z_rotation_buffer_lock:
                 z_rotation_buffer.append(int_gyro[2])
-                #print(z_rotation_buffer)
             
-            #keep track of previous element
+            # keep track of previous element
             prev = message[0]
 
         if writer:
@@ -440,14 +446,16 @@ async def handle_client(reader, writer):
 
 async def main():   
     try:
+        # create tasks
         server = await asyncio.start_server(handle_client, '127.0.0.1', 8877)
         collect_x_task = asyncio.create_task(collect_x())
         collect_y_task = asyncio.create_task(collect_y())
         collect_z_task = asyncio.create_task(collect_z())
         pull_data = asyncio.create_task(print_directions())
         run_drone = asyncio.create_task(drone())
-        
         print("Server started on 127.0.0.1:8877")
+
+        # when server closes, stop all coroutines
         async with server:
             try:
                 await server.serve_forever()
@@ -460,7 +468,6 @@ async def main():
                 pull_data.cancel()
                 run_drone.cancel()
 
-        await run_drone
     except KeyboardInterrupt:
         print('KeyboardInterrupt - EXIT')
     except RuntimeError:
