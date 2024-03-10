@@ -18,6 +18,27 @@ async def test():
         print('test loop')
         await asyncio.sleep(0.1)
 
+async def handle_client(reader, writer):
+    try:
+        while True:
+            data = await reader.read(1024)  # Adjust buffer size as needed
+            if not data:
+                break
+                
+            message = str.split(data.decode(encoding='utf-8'))
+            if writer:
+                writer.write(data)  # Echo back to client 
+                await writer.drain()  # Ensure that the data is actually written to the client
+            
+            print(message)
+
+        if writer:
+            writer.close()
+
+    except Exception:
+        print('caught runtime')
+        raise SystemExit("exit")
+
 async def drone():
     cflib.crtp.init_drivers(enable_debug_driver=False)
 
