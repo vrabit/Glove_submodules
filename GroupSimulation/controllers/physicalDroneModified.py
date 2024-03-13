@@ -261,18 +261,49 @@ async def handle_client(reader, writer):
 
 
 async def handle_client(reader, writer):
+    # gyroscopeRange/(2^15-1) range from spec sheet
+    gyro_scale = (2000 / 32767)
     try:
+        prev = ""
         while True:
             data = await reader.read(1024)  # Adjust buffer size as needed
             if not data:
                 break
 
             message = str.split(data.decode(encoding='utf-8'))
+            if message[0] != prev:
+                global gesture_change_x, gesture_change_y, gesture_change_z, gesture
+                async with gesture_change_x_lock:
+                    gesture_change_x = True
+                async with gesture_change_y_lock:
+                    gesture_change_y = True
+                async with gesture_change_z_lock:
+                    gesture_change_z = True
+                async with gesture_lock:
+                    gesture = message[0]
+                    # print(gesture)
+
             if writer:
                 writer.write(data)  # Echo back to client
                 await writer.drain()  # Ensure that the data is actually written to the client
 
-            print(message)
+            # create list of gyro rotation values with scale applied
+            int_gyro = [int(to_int(int(message[1])) * gyro_scale), int(to_int(int(message[2])) * gyro_scale),
+                        int(to_int(int(message[3])) * gyro_scale)]
+
+            # fill the rotation_buffers to be used in approximating rotation
+            global x_rotation_buffer, y_rotation_buffer, z_rotation_buffer
+            async with x_rotation_buffer_lock:
+                x_rotation_buffer.append(int_gyro[0])
+
+            async with y_rotation_buffer_lock:
+                y_rotation_buffer.append(int_gyro[1])
+
+            async with z_rotation_buffer_lock:
+                z_rotation_buffer.append(int_gyro[2])
+
+            # keep track of previous element
+            prev = message[0]
 
         if writer:
             writer.close()
@@ -283,6 +314,7 @@ async def handle_client(reader, writer):
 
 
 async def drone():
+    delay = 1.5
     cflib.crtp.init_drivers(enable_debug_driver=False)
     URI = 'radio://0/80/2M'
 
@@ -318,62 +350,76 @@ async def drone():
         # H gesture - move forward and back
         if int(ges) == 3:
             if z_neg:
-                mc.forward(0.5)
+                mc.forward(0.1)
                 print('Moving forward')
+                await asyncio.sleep(delay)
             elif z_pos:
-                mc.back(0.5)
+                mc.back(0.1)
                 print('Moving back')
+                await asyncio.sleep(delay)
             else:
                 pass
-            await asyncio.sleep(1)  # Pause for 1 second after each movement
+              # Pause for 1 second after each movement
         # Y gesture - move left and right
         elif int(ges) == 5:
             if x_neg:
-                mc.left(0.5)
+                mc.left(0.1)
                 print('Moving left')
+                await asyncio.sleep(delay)
 
             elif x_pos:
-                mc.right(0.5)
+                mc.right(0.1)
                 print('Moving right')
+                await asyncio.sleep(delay)
             else:
                 pass
-            await asyncio.sleep(1)
+
         elif int(ges) == 1:
-            if z_pos:
+            if y_neg:
                 mc.up(0.2)
                 print('Moving up 0.2m')
-            elif z_neg:
+                await asyncio.sleep(delay)
+            elif y_pos:
                 mc.down(0.2)
                 print('Moving down 0.2m')
+                await asyncio.sleep(delay)
             else:
                 pass
-            
-            await asyncio.sleep(1)
+
         # A gesture - rotate left and right
         elif int(ges) == 0:
             if z_pos:
                 mc.turn_left(90,72)
                 print('rotate left')
+                await asyncio.sleep(delay)
             elif z_neg:
                 mc.turn_right(90,72)
                 print('rotate right')
+                await asyncio.sleep(delay)
             else:
                 pass
-            await asyncio.sleep(1)
-        elif keyboard.is_pressed('z'):
-            print('Taking off')
-            mc.take_off(0.2)
-            await asyncio.sleep(1)
+
+        elif int(ges) == 4:
+            if y_pos:
+                mc.land(0.2)
+                print('Landing')
+                await asyncio.sleep(delay)
+            elif y_neg:
+                mc.take_off(0.2)
+                print('Taking off')
+                await asyncio.sleep(delay)
+
         elif keyboard.is_pressed('x'):
             print('Landing')
             mc.land(0.2)
-            await asyncio.sleep(1)
+
+
         elif keyboard.is_pressed('n'):
             print('Performing a trick')
             mc.circle_right(0.5, velocity=0.5, angle_degrees=270)
-            await asyncio.sleep(1)
 
-        #await asyncio.sleep(.5)
+
+        await asyncio.sleep(0.0005)
 
 async def main():   
     try:
