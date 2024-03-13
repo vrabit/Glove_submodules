@@ -1,4 +1,6 @@
-GloveCases - holds different 3d case models for glove 2 prototype.
+DroneFinalProject - All files necessary for running final project
+
+GloveCases - Holds different 3d case models for glove 2 prototype.
 
 GloveUtility - Scripts for data collection and data collected.
 
