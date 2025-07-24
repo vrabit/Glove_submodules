@@ -1,15 +1,39 @@
-DroneFinalProject - All files necessary for running final project
+# Drone Final Project
 
-GloveCases - Holds different 3d case models for glove 2 prototype.
+This repository contains all files necessary for the final drone project, including firmware, data collection utilities, 3D models, and machine learning components.
+Project Structure
 
-GloveUtility - Scripts for data collection and data collected.
+📦 DroneFinalProject
 
-GroupSimulation - Final combination of the drone teams component and the hand gesture component.
+   - Top-level directory containing all project components necessary to fly the drone.
 
-GloveFlexTest - Firmware for NUCLEO-L432KC that outputs 5 resistance values per finger and 3 Gyroscope values (roll, yaw, pitch).
+📁 GloveCases
 
-Webots - Yu's drone simulations.
+   - Contains various 3D case models for the Glove 2 prototype.
 
-drones_ML - Jupyter project that uses the collected data to train various models to predict hand gestures.
+🛠️ GloveUtility
 
-test - Michaels drone simulations.
+Includes:
+
+   - Scripts for data collection
+
+   - Collected gesture data
+
+🤖 GroupSimulation
+
+Integrates both the drone control system and the hand gesture recognition component into a final working simulation.
+🔧 GloveFlexTest
+
+Firmware for the NUCLEO-L432KC microcontroller. Outputs:
+
+   - 5 resistance values per finger
+
+   - 3 gyroscope values: roll, yaw, and pitch
+
+🧠 drones_ML
+
+Jupyter Notebook-based project using the collected data to:
+
+   - Train machine learning models
+
+   - Predict hand gestures based on input signals
